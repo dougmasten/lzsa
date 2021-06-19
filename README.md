@@ -13,6 +13,14 @@ The 8 bit guy's [Commander X16 ROM](https://github.com/commanderx16/x16-rom) use
 
 [RomWBW](https://github.com/wwarthen/RomWBW) uses LZSA on Z80 for a variety of hobbyist computers.
 
+The popular [rasm](https://github.com/EdouardBERGE/rasm) assembler for Z80 features LZSA-compressed data sections.
+
+The [desolate](https://github.com/nzeemin/spectrum-desolate) game port to the ZX Spectrum uses LZSA compression on Z80.
+
+[Marsmare: Alienation](https://zxonline.net/game/marsmare-alienation/), the winner of the recent [Yandex Retro Games Battle 2020](https://yandex.ru/museum/yrgb-2020-en), is using LZSA to compress its assets.
+
+The [Lowtech demo](https://github.com/wiz21b/lowtech) for the Apple II+ and IIe, by Wiz/Imphobia, compresses data with LZSA.
+
 The LZSA compression tool uses an aggressive optimal packing strategy to try to find the sequence of commands that gives the smallest packed file that decompresses to the original while maintaining the maximum possible decompression speed.
 
 The compression formats give the user choices that range from decompressing faster than LZ4 on 8-bit systems with better compression, to compressing as well as ZX7 with much better decompression speed. LZSA1 is designed to replace LZ4 and LZSA2 to replace ZX7, in 8-bit scenarios.
@@ -76,13 +84,14 @@ License:
 * 6502 speed-optimized decompressor by [John Brandwood](https://github.com/jbrandwood)
 * 8088 speed-optimized decompressor by [Jim Leonard](https://github.com/mobygamer)
 * 6809 decompressors (Tandy CoCo, Thomson MO/TO, Dragon 32/64..) optimized by [Doug Masten](https://github.com/dougmasten)
+* Hitachi 6309 decompressors (Tandy CoCo 3) also contributed by [Doug Masten](https://github.com/dougmasten)
 
 External links:
 
-* [i8080 decompressors](https://gitlab.com/ivagor/lzsa8080/tree/master) by Ivan Gorodetsky
-* [PDP-11 decompressors](https://gitlab.com/ivagor/lzsa8080/tree/master/PDP11) also by Ivan Gorodetsky
+* [i8080 and PDP-11 decompressors](https://github.com/ivagorRetrocomp/DeLZSA) by Ivan Gorodetsky
 * [MC68000 decompressors](https://github.com/tattlemuss/lz4-m68k/blob/master/src/lzsa.s) by Steven Tattersall
 * [Gameboy decompressors](https://github.com/meltycode) by Meltycode, based on the Z80 code by introspec
+* [Streamed LZSA2 depacker](https://hg.ulukai.org/ecm/inicomp/file/c1a1f9bd4382/lzsa2.asm) by C. Masloch
 * LZSA's page on [Pouet](https://www.pouet.net/prod.php?which=81573)
 
 # Compressed format

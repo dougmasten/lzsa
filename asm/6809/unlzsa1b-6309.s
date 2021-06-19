@@ -1,11 +1,11 @@
-;  unlzsa1.s - 6809 decompression routine for raw LZSA1 - 110 bytes
-;  compress with lzsa -r <original_file> <compressed_file>
+;  unlzsa1-6309.s - H6309 backward decompressor for raw LZSA1 - 97 bytes
+;  compress with lzsa -f1 -r -b <original_file> <compressed_file>
 ;
-;  in:  x = start of compressed data
-;       y = start of decompression buffer
-;  out: y = end of decompression buffer + 1
+;  in:  x = last byte of compressed data
+;       y = last byte of decompression buffer
+;  out: y = first byte of decompressed data
 ;
-;  Copyright (C) 2020 Emmanuel Marty
+;  Copyright (C) 2020 Emmanuel Marty, Doug Masten
 ;
 ;  This software is provided 'as-is', without any express or implied
 ;  warranty.  In no event will the authors be held liable for any damages
@@ -23,10 +23,13 @@
 ;     misrepresented as being the original software.
 ;  3. This notice may not be removed or altered from any source distribution.
 
-decompress_lzsa1 equ lz1token
+decompress_lzsa1
+         leax 1,x
+         bra lz1token
 
-lz1bigof lda ,x+           ; O set: load MSB 16-bit (negative, signed) offest
-lz1gotof leau d,y          ; put backreference start address in U (dst+offset)
+lz1bigof ldd ,--x          ; O set: load long 16-bit (negative, signed) offest
+lz1gotof negd              ; reverse sign of offset in D
+         leau d,y          ; put backreference start address in U (dst+offset)
 
          ldd #$000f        ; clear MSB match length and set mask for MMMM
          andb ,s+          ; isolate MMMM (embedded match length) in token
@@ -34,32 +37,23 @@ lz1gotof leau d,y          ; put backreference start address in U (dst+offset)
          cmpb #$12         ; MATCH_RUN_LEN?
          bne lz1gotln      ; no, we have the full match length, go copy
 
-         addb ,x+          ; add extra match length byte + MIN_MATCH_SIZE + MATCH_RUN_LEN
+         addb ,-x          ; add extra match length byte + MIN_MATCH_SIZE + MATCH_RUN_LEN
          bcc lz1gotln      ; if no overflow, we have the full length
          bne lz1midln
 
-         ldb ,x+           ; load 16-bit len in D (low part in B, high in A)
-         lda ,x+           ; (little endian)
+         ldd ,--x          ; load 16-bit len in D (low part in B, high in A)
          bne lz1gotln      ; check if we hit EOD (16-bit length = 0)
-         tstb
-         bne lz1gotln      ; go copy matched bytes if not
 
+         leay 1,y          ; adjust pointer to first byte of decompressed data
          rts               ; done, bail
 
 lz1midln tfr b,a           ; copy high part of len into A
-         ldb ,x+           ; grab low 8 bits of len in B
+         ldb ,-x           ; grab low 8 bits of len in B
 
-lz1gotln pshs x            ; save source compressed data pointer
-         tfr d,x           ; copy match length to X
+lz1gotln tfr d,w           ; set W with match length for TFM instruction
+         tfm u-,y-         ; copy match bytes
 
-lz1cpymt lda ,u+           ; copy matched byte
-         sta ,y+
-         leax -1,x         ; decrement X
-         bne lz1cpymt      ; loop until all matched bytes are copied
-
-         puls x            ; restore source compressed data pointer
-
-lz1token ldb ,x+           ; load next token into B: O|LLL|MMMM
+lz1token ldb ,-x           ; load next token into B: O|LLL|MMMM
          pshs b            ; save it
 
          andb #$70         ; isolate LLL (embedded literals count) in B
@@ -67,36 +61,32 @@ lz1token ldb ,x+           ; load next token into B: O|LLL|MMMM
          cmpb #$70         ; LITERALS_RUN_LEN?
          bne lz1declt      ; if not, we have the complete count, go unshift
 
-         ldb ,x+           ; load extra literals count byte
+         ldb ,-x           ; load extra literals count byte
          addb #$07         ; add LITERALS_RUN_LEN
          bcc lz1gotla      ; if no overflow, we got the complete count, copy
          bne lz1midlt
 
-         ldb ,x+           ; load low 8 bits of little-endian literals count
-         lda ,x+           ; load high 8 bits of literal count
+         ldd ,--x          ; load 16 bit count in D (low part in B, high in A)
          bra lz1gotlt      ; we now have the complete count, go copy
 
 lz1midlt tfr b,a           ; copy high part of literals count into A
-         ldb ,x+           ; load low 8 bits of literals count
+         ldb ,-x           ; load low 8 bits of literals count
          bra lz1gotlt      ; we now have the complete count, go copy
 
 lz1declt lsrb              ; shift literals count into place
          lsrb
          lsrb
          lsrb
+
 lz1gotla clra              ; clear A (high part of literals count)
+lz1gotlt tfr d,w           ; set W with literals count for TFM instruction
+         leax -1,x         ; tfm is post-decrement
+         tfm x-,y-         ; copy literal bytes
+         leax 1,x
 
-lz1gotlt leau ,x
-         tfr d,x           ; transfer 16-bit count into X
-lz1cpylt lda ,u+           ; copy literal byte
-         sta ,y+
-         leax -1,x         ; decrement X and update Z flag
-         bne lz1cpylt      ; loop until all literal bytes are copied
-         leax ,u
-
-lz1nolt  ldb ,x+           ; load either 8-bit or LSB 16-bit offset (negative, signed)
-         lda ,s            ; get token again, don't pop it from the stack
+lz1nolt  ldb ,s            ; get token again, don't pop it from the stack
          bmi lz1bigof      ; test O bit (small or large offset)
 
+         ldb ,-x           ; load either 8-bit or LSB 16-bit offset (negative, signed)
          lda #$ff          ; set high 8 bits
          bra lz1gotof
